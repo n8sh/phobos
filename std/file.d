@@ -1186,22 +1186,30 @@ if (isConvertibleToString!R)
 version (Posix)
 private SysTime statTimeToStdTime(char which)(ref const stat_t statbuf)
 {
-    auto unixTime = mixin(`statbuf.st_` ~ which ~ `time`);
-    long stdTime = unixTimeToStdTime(unixTime);
+    static if (is(typeof(statbuf.st_mtim.tv_sec)) && is(typeof(statbuf.st_mtim.tv_nsec)))
+    {
+        return SysTime(unixTimeToStdTime(mixin(`statbuf.st_`~which~`tim.tv_sec`))
+            + (mixin(`statbuf.st_`~which~`tim.tv_nsec`) / 100));
+    }
+    else
+    {
+        auto unixTime = mixin(`statbuf.st_` ~ which ~ `time`);
+        long stdTime = unixTimeToStdTime(unixTime);
 
-    static if (is(typeof(mixin(`statbuf.st_` ~ which ~ `tim`))))
-        stdTime += mixin(`statbuf.st_` ~ which ~ `tim.tv_nsec`) / 100;
-    else
-    static if (is(typeof(mixin(`statbuf.st_` ~ which ~ `timensec`))))
-        stdTime += mixin(`statbuf.st_` ~ which ~ `timensec`) / 100;
-    else
-    static if (is(typeof(mixin(`statbuf.st_` ~ which ~ `time_nsec`))))
-        stdTime += mixin(`statbuf.st_` ~ which ~ `time_nsec`) / 100;
-    else
-    static if (is(typeof(mixin(`statbuf.__st_` ~ which ~ `timensec`))))
-        stdTime += mixin(`statbuf.__st_` ~ which ~ `timensec`) / 100;
+        static if (is(typeof(mixin(`statbuf.st_` ~ which ~ `tim`))))
+            stdTime += mixin(`statbuf.st_` ~ which ~ `tim.tv_nsec`) / 100;
+        else
+        static if (is(typeof(mixin(`statbuf.st_` ~ which ~ `timensec`))))
+            stdTime += mixin(`statbuf.st_` ~ which ~ `timensec`) / 100;
+        else
+        static if (is(typeof(mixin(`statbuf.st_` ~ which ~ `time_nsec`))))
+            stdTime += mixin(`statbuf.st_` ~ which ~ `time_nsec`) / 100;
+        else
+        static if (is(typeof(mixin(`statbuf.__st_` ~ which ~ `timensec`))))
+            stdTime += mixin(`statbuf.__st_` ~ which ~ `timensec`) / 100;
 
-    return SysTime(stdTime);
+        return SysTime(stdTime);
+    }
 }
 
 /++
@@ -3455,8 +3463,11 @@ else version (NetBSD)
  *
  * Throws:
  * $(REF1 Exception, object)
+ *
+ * Limitations:
+ * Not available on OpenBSD.
  */
-@trusted string thisExePath()
+@trusted string thisExePath()()
 {
     version (OSX)
     {
@@ -4289,8 +4300,19 @@ private void copyImpl(scope const(char)[] f, scope const(char)[] t,
         cenforce(core.sys.posix.unistd.close(fdw) != -1, f, fromz);
 
         utimbuf utim = void;
-        utim.actime = cast(time_t) statbufr.st_atime;
-        utim.modtime = cast(time_t) statbufr.st_mtime;
+        static if (is(typeof(statbufr.st_atim.tv_sec)))
+        {
+            // TODO: We're discarding tv_nsec here. Should we
+            // be trying to make use of it on systems that support
+            // it?
+            utim.actime = cast(time_t) statbufr.st_atim.tv_sec;
+            utim.modtime = cast(time_t) statbufr.st_mtim.tv_sec;
+        }
+        else
+        {
+            utim.actime = cast(time_t) statbufr.st_atime;
+            utim.modtime = cast(time_t) statbufr.st_mtime;
+        }
 
         cenforce(utime(toz, &utim) != -1, f, fromz);
     }

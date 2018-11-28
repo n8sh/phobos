@@ -76,6 +76,11 @@ else version (NetBSD)
     version = GENERIC_IO;
     version = HAS_GETDELIM;
 }
+else version (OpenBSD)
+{
+    version = GENERIC_IO;
+    version = HAS_GETDELIM;
+}
 else version (DragonFlyBSD)
 {
     version = GENERIC_IO;

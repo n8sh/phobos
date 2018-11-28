@@ -33,6 +33,7 @@ immutable
         osx,       /// Mac OS X
         freeBSD,   /// FreeBSD
         netBSD,    /// NetBSD
+        openBSD,   /// OpenBSD
         dragonFlyBSD, /// DragonFlyBSD
         solaris,   /// Solaris
         android,   /// Android
@@ -47,6 +48,7 @@ immutable
     else version (OSX)     OS os = OS.osx;
     else version (FreeBSD) OS os = OS.freeBSD;
     else version (NetBSD)  OS os = OS.netBSD;
+    else version (OpenBSD)  OS os = OS.openBSD;
     else version (DragonFlyBSD) OS os = OS.dragonFlyBSD;
     else version (Posix)   OS os = OS.otherPosix;
     else static assert(0, "Unknown OS.");
